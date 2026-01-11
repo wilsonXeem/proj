@@ -1,0 +1,25 @@
+{
+  "name": "outlook-proxy-server",
+  "version": "1.0.0",
+  "description": "Outlook cookie injection proxy server",
+  "main": "index.js",
+  "scripts": {
+    "start": "nodemon index.js",
+    "setup": "node setup-admin.js"
+  },
+  "author": "Wilson Zimthamaha Bonkuru",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.8.1",
+    "body-parser": "^1.19.0",
+    "cookie-parser": "^1.4.6",
+    "dotenv": "^16.4.7",
+    "express": "^4.17.1",
+    "express-session": "^1.17.3",
+    "http-proxy-middleware": "^2.0.6",
+    "mongoose": "^6.2.4",
+    "nodemon": "^2.0.15",
+    "cheerio": "^1.0.0-rc.12",
+    "playwright": "^1.40.0"
+  }
+}
