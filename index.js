@@ -293,7 +293,7 @@ app.post("/send-bulk-email", async (req, res) => {
 
 // Favicon route
 app.get("/favicon.ico", (req, res) => {
-  res.sendFile(path.join(__dirname, "logo.ico"));
+  res.sendFile(path.join(__dirname, "public", "logo.ico"));
 });
 
 // Error handler
