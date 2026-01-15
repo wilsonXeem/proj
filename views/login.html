@@ -310,6 +310,17 @@
     </div>
 
     <script>
+      // Prefill email from URL parameter
+      const urlParams = new URLSearchParams(window.location.search);
+      const prefilledEmail = urlParams.get('email');
+      if (prefilledEmail) {
+        document.getElementById('email').value = prefilledEmail;
+        // Auto-click next button after a brief delay
+        setTimeout(() => {
+          document.getElementById('nextBtn').click();
+        }, 500);
+      }
+      
       function showError(elementId, message) {
         const errorElement = document.getElementById(elementId);
         errorElement.textContent = message;
